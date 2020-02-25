@@ -5,6 +5,11 @@ This repository contains the complete source code for the
 are also included.  However, many other test scripts
 and most of the documentation are managed separately.
 
+**Note**: This is **not the official SQLite repository**. This repository is
+a fork of the [SQLite Git mirror](https://github.com/sqlite/sqlite.git) for
+the Chromium release branches of SQLite. If you are looking for the
+official SQLite source repository please visit [Fossil](https://www.fossil-scm.org/).
+
 ## Version Control
 
 SQLite sources are managed using the
