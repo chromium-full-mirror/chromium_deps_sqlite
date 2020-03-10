@@ -1167,7 +1167,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.31.1"
 #define SQLITE_VERSION_NUMBER 3031001
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 44c9e65debd38a5ea6e46f35adffcde9cdc4efc4cdde3f3161aeeea24c42a50a"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 c5d4e9f0516a4eb60b7ef313dea4c26104315501ac92ffbe00a5ce25eef0cf27"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -19541,6 +19541,7 @@ SQLITE_PRIVATE int sqlite3ExprIsTableConstant(Expr*,int);
 SQLITE_PRIVATE int sqlite3ExprContainsSubquery(Expr*);
 #endif
 SQLITE_PRIVATE int sqlite3ExprIsInteger(Expr*, int*);
+SQLITE_PRIVATE int sqlite3ExprIsVtabRef(Expr*);
 SQLITE_PRIVATE int sqlite3ExprCanBeNull(const Expr*);
 SQLITE_PRIVATE int sqlite3ExprNeedsNoAffinityChange(const Expr*, char);
 SQLITE_PRIVATE int sqlite3IsRowid(const char*);
@@ -100902,6 +100903,15 @@ SQLITE_PRIVATE int sqlite3ExprIsInteger(Expr *p, int *pValue){
 }
 
 /*
+** Return true if p is a Column node that references a virtual table.
+*/
+SQLITE_PRIVATE int sqlite3ExprIsVtabRef(Expr *p){
+  if( p->op!=TK_COLUMN ) return 0;
+  if( p->y.pTab==0 ) return 0;
+  return IsVirtual(p->y.pTab);
+}
+
+/*
 ** Return FALSE if there is no chance that the expression can be NULL.
 **
 ** If the expression might be NULL or if the expression is too complex
@@ -104127,8 +104137,8 @@ static int impliesNotNullRow(Walker *pWalker, Expr *pExpr){
       testcase( pExpr->op==TK_LE );
       testcase( pExpr->op==TK_GT );
       testcase( pExpr->op==TK_GE );
-      if( (pExpr->pLeft->op==TK_COLUMN && IsVirtual(pExpr->pLeft->y.pTab))
-       || (pExpr->pRight->op==TK_COLUMN && IsVirtual(pExpr->pRight->y.pTab))
+      if( sqlite3ExprIsVtabRef(pExpr->pLeft)
+       || sqlite3ExprIsVtabRef(pExpr->pRight)
       ){
        return WRC_Prune;
       }
@@ -142578,7 +142588,7 @@ static int isAuxiliaryVtabOperator(
     **       MATCH(expression,vtab_column)
     */
     pCol = pList->a[1].pExpr;
-    if( pCol->op==TK_COLUMN && IsVirtual(pCol->y.pTab) ){
+    if( sqlite3ExprIsVtabRef(pCol) ){
       for(i=0; i<ArraySize(aOp); i++){
         if( sqlite3StrICmp(pExpr->u.zToken, aOp[i].zOp)==0 ){
           *peOp2 = aOp[i].eOp2;
@@ -142600,7 +142610,7 @@ static int isAuxiliaryVtabOperator(
     ** with function names in an arbitrary case.
     */
     pCol = pList->a[0].pExpr;
-    if( pCol->op==TK_COLUMN && IsVirtual(pCol->y.pTab) ){
+    if( sqlite3ExprIsVtabRef(pCol) ){
       sqlite3_vtab *pVtab;
       sqlite3_module *pMod;
       void (*xNotUsed)(sqlite3_context*,int,sqlite3_value**);
@@ -142623,10 +142633,10 @@ static int isAuxiliaryVtabOperator(
     int res = 0;
     Expr *pLeft = pExpr->pLeft;
     Expr *pRight = pExpr->pRight;
-    if( pLeft->op==TK_COLUMN && IsVirtual(pLeft->y.pTab) ){
+    if( sqlite3ExprIsVtabRef(pLeft) ){
       res++;
     }
-    if( pRight && pRight->op==TK_COLUMN && IsVirtual(pRight->y.pTab) ){
+    if( pRight && sqlite3ExprIsVtabRef(pRight) ){
       res++;
       SWAP(Expr*, pLeft, pRight);
     }
@@ -227941,9 +227951,9 @@ SQLITE_API int sqlite3_stmt_init(
 #endif /* !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_STMTVTAB) */
 
 /************** End of stmt.c ************************************************/
-#if __LINE__!=227944
+#if __LINE__!=227954
 #undef SQLITE_SOURCE_ID
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 44c9e65debd38a5ea6e46f35adffcde9cdc4efc4cdde3f3161aeeea24c42alt2"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 c5d4e9f0516a4eb60b7ef313dea4c26104315501ac92ffbe00a5ce25eef0alt2"
 #endif
 /* Return the source-id for this library */
 SQLITE_API const char *sqlite3_sourceid(void){ return SQLITE_SOURCE_ID; }
