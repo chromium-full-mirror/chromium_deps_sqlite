@@ -1167,7 +1167,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.31.1"
 #define SQLITE_VERSION_NUMBER 3031001
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 63a4cd17176935a600066f2b345bf759787ecb1623998419d90025688759e1a6"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 44c9e65debd38a5ea6e46f35adffcde9cdc4efc4cdde3f3161aeeea24c42a50a"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -65532,7 +65532,7 @@ static int defragmentPage(MemPage *pPage, int nMaxFrag){
         int sz2 = 0;
         int sz = get2byte(&data[iFree+2]);
         int top = get2byte(&data[hdr+5]);
-        if( NEVER(top>=iFree) ){
+        if( top>=iFree ){
           return SQLITE_CORRUPT_PAGE(pPage);
         }
         if( iFree2 ){
@@ -227943,7 +227943,7 @@ SQLITE_API int sqlite3_stmt_init(
 /************** End of stmt.c ************************************************/
 #if __LINE__!=227944
 #undef SQLITE_SOURCE_ID
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 63a4cd17176935a600066f2b345bf759787ecb1623998419d90025688759alt2"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 44c9e65debd38a5ea6e46f35adffcde9cdc4efc4cdde3f3161aeeea24c42alt2"
 #endif
 /* Return the source-id for this library */
 SQLITE_API const char *sqlite3_sourceid(void){ return SQLITE_SOURCE_ID; }
