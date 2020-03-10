@@ -1167,7 +1167,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.31.1"
 #define SQLITE_VERSION_NUMBER 3031001
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 5a32c9924ad31424e6b3a0450ed44ee55262828d490dce6682ec2592764a0fdd"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 63a4cd17176935a600066f2b345bf759787ecb1623998419d90025688759e1a6"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -174486,7 +174486,7 @@ static int fts3tokFilterMethod(
     if( pCsr->zInput==0 ){
       rc = SQLITE_NOMEM;
     }else{
-      memcpy(pCsr->zInput, zByte, nByte);
+      if( nByte>0 ) memcpy(pCsr->zInput, zByte, nByte);
       pCsr->zInput[nByte] = 0;
       rc = pTab->pMod->xOpen(pTab->pTok, pCsr->zInput, nByte, &pCsr->pCsr);
       if( rc==SQLITE_OK ){
@@ -177096,7 +177096,7 @@ static int fts3SegmentIsMaxLevel(Fts3Table *p, i64 iAbsLevel, int *pbMax){
   if( rc!=SQLITE_OK ) return rc;
   sqlite3_bind_int64(pStmt, 1, iAbsLevel+1);
   sqlite3_bind_int64(pStmt, 2, 
-      ((iAbsLevel/FTS3_SEGDIR_MAXLEVEL)+1) * FTS3_SEGDIR_MAXLEVEL
+      (((u64)iAbsLevel/FTS3_SEGDIR_MAXLEVEL)+1) * FTS3_SEGDIR_MAXLEVEL
   );
 
   *pbMax = 0;
@@ -227943,7 +227943,7 @@ SQLITE_API int sqlite3_stmt_init(
 /************** End of stmt.c ************************************************/
 #if __LINE__!=227944
 #undef SQLITE_SOURCE_ID
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 5a32c9924ad31424e6b3a0450ed44ee55262828d490dce6682ec2592764aalt2"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 63a4cd17176935a600066f2b345bf759787ecb1623998419d90025688759alt2"
 #endif
 /* Return the source-id for this library */
 SQLITE_API const char *sqlite3_sourceid(void){ return SQLITE_SOURCE_ID; }
