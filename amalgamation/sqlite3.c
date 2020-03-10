@@ -1167,7 +1167,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.31.1"
 #define SQLITE_VERSION_NUMBER 3031001
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 3bfa9cc97da10598521b342961df8f5f68c7388fa117345eeb516eaa837bb4d6"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 5a32c9924ad31424e6b3a0450ed44ee55262828d490dce6682ec2592764a0fdd"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -65863,7 +65863,7 @@ static int freeSpace(MemPage *pPage, u16 iStart, u16 iSize){
     ** so just extend the cell content area rather than create another
     ** freelist entry */
     if( iStart<x ) return SQLITE_CORRUPT_PAGE(pPage);
-    if( NEVER(iPtr!=hdr+1) ) return SQLITE_CORRUPT_PAGE(pPage);
+    if( iPtr!=hdr+1 ) return SQLITE_CORRUPT_PAGE(pPage);
     put2byte(&data[hdr+1], iFreeBlk);
     put2byte(&data[hdr+5], iEnd);
   }else{
@@ -223168,7 +223168,7 @@ static void fts5SourceIdFunc(
 ){
   assert( nArg==0 );
   UNUSED_PARAM2(nArg, apUnused);
-  sqlite3_result_text(pCtx, "fts5: 2020-01-27 19:55:54 3bfa9cc97da10598521b342961df8f5f68c7388fa117345eeb516eaa837bb4d6", -1, SQLITE_TRANSIENT);
+  sqlite3_result_text(pCtx, "fts5: 2020-01-27 19:55:54 0000000000000000000000000000000000000000000000000000000000000000", -1, SQLITE_TRANSIENT);
 }
 
 /*
@@ -227943,7 +227943,7 @@ SQLITE_API int sqlite3_stmt_init(
 /************** End of stmt.c ************************************************/
 #if __LINE__!=227944
 #undef SQLITE_SOURCE_ID
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 3bfa9cc97da10598521b342961df8f5f68c7388fa117345eeb516eaa837balt2"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 5a32c9924ad31424e6b3a0450ed44ee55262828d490dce6682ec2592764aalt2"
 #endif
 /* Return the source-id for this library */
 SQLITE_API const char *sqlite3_sourceid(void){ return SQLITE_SOURCE_ID; }
