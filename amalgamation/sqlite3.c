@@ -1167,7 +1167,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.31.1"
 #define SQLITE_VERSION_NUMBER 3031001
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 c5d4e9f0516a4eb60b7ef313dea4c26104315501ac92ffbe00a5ce25eef0cf27"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 fca7a8e98ccbd6217c9ba816e063d96d882e99b258ae268e64b1cb84c356dff5"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -17415,8 +17415,11 @@ struct Table {
 */
 #ifndef SQLITE_OMIT_VIRTUALTABLE
 #  define IsVirtual(X)      ((X)->nModuleArg)
+#  define ExprIsVtab(X)  \
+              ((X)->op==TK_COLUMN && (X)->y.pTab!=0 && (X)->y.pTab->nModuleArg)
 #else
 #  define IsVirtual(X)      0
+#  define ExprIsVtab(X)     0
 #endif
 
 /*
@@ -19541,7 +19544,6 @@ SQLITE_PRIVATE int sqlite3ExprIsTableConstant(Expr*,int);
 SQLITE_PRIVATE int sqlite3ExprContainsSubquery(Expr*);
 #endif
 SQLITE_PRIVATE int sqlite3ExprIsInteger(Expr*, int*);
-SQLITE_PRIVATE int sqlite3ExprIsVtabRef(Expr*);
 SQLITE_PRIVATE int sqlite3ExprCanBeNull(const Expr*);
 SQLITE_PRIVATE int sqlite3ExprNeedsNoAffinityChange(const Expr*, char);
 SQLITE_PRIVATE int sqlite3IsRowid(const char*);
@@ -100903,15 +100905,6 @@ SQLITE_PRIVATE int sqlite3ExprIsInteger(Expr *p, int *pValue){
 }
 
 /*
-** Return true if p is a Column node that references a virtual table.
-*/
-SQLITE_PRIVATE int sqlite3ExprIsVtabRef(Expr *p){
-  if( p->op!=TK_COLUMN ) return 0;
-  if( p->y.pTab==0 ) return 0;
-  return IsVirtual(p->y.pTab);
-}
-
-/*
 ** Return FALSE if there is no chance that the expression can be NULL.
 **
 ** If the expression might be NULL or if the expression is too complex
@@ -104130,19 +104123,25 @@ static int impliesNotNullRow(Walker *pWalker, Expr *pExpr){
     case TK_LT:
     case TK_LE:
     case TK_GT:
-    case TK_GE:
+    case TK_GE: {
+      Expr *pLeft = pExpr->pLeft;
+      Expr *pRight = pExpr->pRight;
       testcase( pExpr->op==TK_EQ );
       testcase( pExpr->op==TK_NE );
       testcase( pExpr->op==TK_LT );
       testcase( pExpr->op==TK_LE );
       testcase( pExpr->op==TK_GT );
       testcase( pExpr->op==TK_GE );
-      if( sqlite3ExprIsVtabRef(pExpr->pLeft)
-       || sqlite3ExprIsVtabRef(pExpr->pRight)
+      /* The y.pTab=0 assignment in wherecode.c always happens after the
+      ** impliesNotNullRow() test */
+      if( (pLeft->op==TK_COLUMN && ALWAYS(pLeft->y.pTab!=0)
+                               && IsVirtual(pLeft->y.pTab))
+       || (pRight->op==TK_COLUMN && ALWAYS(pRight->y.pTab!=0)
+                               && IsVirtual(pRight->y.pTab))
       ){
-       return WRC_Prune;
+        return WRC_Prune;
       }
-
+    }
     default:
       return WRC_Continue;
   }
@@ -142588,7 +142587,8 @@ static int isAuxiliaryVtabOperator(
     **       MATCH(expression,vtab_column)
     */
     pCol = pList->a[1].pExpr;
-    if( sqlite3ExprIsVtabRef(pCol) ){
+    testcase( pCol->op==TK_COLUMN && pCol->y.pTab==0 );
+    if( ExprIsVtab(pCol) ){
       for(i=0; i<ArraySize(aOp); i++){
         if( sqlite3StrICmp(pExpr->u.zToken, aOp[i].zOp)==0 ){
           *peOp2 = aOp[i].eOp2;
@@ -142610,7 +142610,8 @@ static int isAuxiliaryVtabOperator(
     ** with function names in an arbitrary case.
     */
     pCol = pList->a[0].pExpr;
-    if( sqlite3ExprIsVtabRef(pCol) ){
+    testcase( pCol->op==TK_COLUMN && pCol->y.pTab==0 );
+    if( ExprIsVtab(pCol) ){
       sqlite3_vtab *pVtab;
       sqlite3_module *pMod;
       void (*xNotUsed)(sqlite3_context*,int,sqlite3_value**);
@@ -142633,10 +142634,12 @@ static int isAuxiliaryVtabOperator(
     int res = 0;
     Expr *pLeft = pExpr->pLeft;
     Expr *pRight = pExpr->pRight;
-    if( sqlite3ExprIsVtabRef(pLeft) ){
+    testcase( pLeft->op==TK_COLUMN && pLeft->y.pTab==0 );
+    if( ExprIsVtab(pLeft) ){
       res++;
     }
-    if( pRight && sqlite3ExprIsVtabRef(pRight) ){
+    testcase( pRight && pRight->op==TK_COLUMN && pRight->y.pTab==0 );
+    if( pRight && ExprIsVtab(pRight) ){
       res++;
       SWAP(Expr*, pLeft, pRight);
     }
@@ -227951,9 +227954,9 @@ SQLITE_API int sqlite3_stmt_init(
 #endif /* !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_STMTVTAB) */
 
 /************** End of stmt.c ************************************************/
-#if __LINE__!=227954
+#if __LINE__!=227957
 #undef SQLITE_SOURCE_ID
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 c5d4e9f0516a4eb60b7ef313dea4c26104315501ac92ffbe00a5ce25eef0alt2"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 fca7a8e98ccbd6217c9ba816e063d96d882e99b258ae268e64b1cb84c356alt2"
 #endif
 /* Return the source-id for this library */
 SQLITE_API const char *sqlite3_sourceid(void){ return SQLITE_SOURCE_ID; }
