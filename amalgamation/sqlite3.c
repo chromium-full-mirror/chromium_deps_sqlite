@@ -1167,7 +1167,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.31.1"
 #define SQLITE_VERSION_NUMBER 3031001
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 168aad71ca0904cd97f35e4573863cecd6fbcc1eaafda67f96894fb2f07a3cd4"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 c2f319b4a6f6369403901f151946347b62554409191a779023bd5b248517e75e"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -133219,6 +133219,7 @@ static void resetAccumulator(Parse *pParse, AggInfo *pAggInfo){
   struct AggInfo_func *pFunc;
   int nReg = pAggInfo->nFunc + pAggInfo->nColumn;
   if( nReg==0 ) return;
+  if( pParse->nErr ) return;
 #ifdef SQLITE_DEBUG
   /* Verify that all AggInfo registers are within the range specified by
   ** AggInfo.mnReg..AggInfo.mxReg */
@@ -227960,9 +227961,9 @@ SQLITE_API int sqlite3_stmt_init(
 #endif /* !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_STMTVTAB) */
 
 /************** End of stmt.c ************************************************/
-#if __LINE__!=227963
+#if __LINE__!=227964
 #undef SQLITE_SOURCE_ID
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 168aad71ca0904cd97f35e4573863cecd6fbcc1eaafda67f96894fb2f07aalt2"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 c2f319b4a6f6369403901f151946347b62554409191a779023bd5b248517alt2"
 #endif
 /* Return the source-id for this library */
 SQLITE_API const char *sqlite3_sourceid(void){ return SQLITE_SOURCE_ID; }
