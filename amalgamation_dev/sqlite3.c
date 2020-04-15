@@ -1167,7 +1167,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.31.1"
 #define SQLITE_VERSION_NUMBER 3031001
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 c2f319b4a6f6369403901f151946347b62554409191a779023bd5b248517e75e"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 c0e9158b55b24ba7b1ae95a3fb37559fc1026ac153bca9d05eb4dba1a0aealt1"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -105385,6 +105385,21 @@ static void renameWalkWith(Walker *pWalker, Select *pSelect){
 }
 
 /*
+** Unmap all tokens in the IdList object passed as the second argument.
+*/
+static void unmapColumnIdlistNames(
+  Parse *pParse,
+  IdList *pIdList
+){
+  if( pIdList ){
+    int ii;
+    for(ii=0; ii<pIdList->nId; ii++){
+      sqlite3RenameTokenRemap(pParse, 0, (void*)pIdList->a[ii].zName);
+    }
+  }
+}
+
+/*
 ** Walker callback used by sqlite3RenameExprUnmap().
 */
 static int renameUnmapSelectCb(Walker *pWalker, Select *p){
@@ -105405,6 +105420,7 @@ static int renameUnmapSelectCb(Walker *pWalker, Select *p){
     for(i=0; i<pSrc->nSrc; i++){
       sqlite3RenameTokenRemap(pParse, 0, (void*)pSrc->a[i].zName);
       if( sqlite3WalkExpr(pWalker, pSrc->a[i].pOn) ) return WRC_Abort;
+      unmapColumnIdlistNames(pParse, pSrc->a[i].pUsing);
     }
   }
 
@@ -105612,6 +105628,7 @@ static void renameColumnIdlistNames(
     }
   }
 }
+
 
 /*
 ** Parse the SQL statement zSql using Parse object (*p). The Parse object
@@ -228460,9 +228477,9 @@ SQLITE_API int sqlite3_stmt_init(
 #endif /* !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_STMTVTAB) */
 
 /************** End of stmt.c ************************************************/
-#if __LINE__!=228463
+#if __LINE__!=228480
 #undef SQLITE_SOURCE_ID
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 c2f319b4a6f6369403901f151946347b62554409191a779023bd5b248517alt2"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 c0e9158b55b24ba7b1ae95a3fb37559fc1026ac153bca9d05eb4dba1a0aealt2"
 #endif
 /* Return the source-id for this library */
 SQLITE_API const char *sqlite3_sourceid(void){ return SQLITE_SOURCE_ID; }
