@@ -1167,7 +1167,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.31.1"
 #define SQLITE_VERSION_NUMBER 3031001
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 c0e9158b55b24ba7b1ae95a3fb37559fc1026ac153bca9d05eb4dba1a0aealt1"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 3b3519d52271c5efc55509b912b8f9928eeb552f894fb8b4716372706965alt1"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -166830,6 +166830,7 @@ static int fts3ScanInteriorNode(
   i64 nAlloc = 0;                 /* Size of allocated buffer */
   int isFirstTerm = 1;            /* True when processing first term on page */
   sqlite3_int64 iChild;           /* Block id of child node to descend to */
+  int nBuffer = 0;                /* Total term size */
 
   /* Skip over the 'height' varint that occurs at the start of every 
   ** interior node. Then load the blockid of the left-child of the b-tree
@@ -166854,12 +166855,15 @@ static int fts3ScanInteriorNode(
     int cmp;                      /* memcmp() result */
     int nSuffix;                  /* Size of term suffix */
     int nPrefix = 0;              /* Size of term prefix */
-    int nBuffer;                  /* Total term size */
   
     /* Load the next term on the node into zBuffer. Use realloc() to expand
     ** the size of zBuffer if required.  */
     if( !isFirstTerm ){
       zCsr += fts3GetVarint32(zCsr, &nPrefix);
+      if( nPrefix>nBuffer ){
+        rc = FTS_CORRUPT_VTAB;
+        goto finish_scan;
+      }
     }
     isFirstTerm = 0;
     zCsr += fts3GetVarint32(zCsr, &nSuffix);
@@ -228477,9 +228481,9 @@ SQLITE_API int sqlite3_stmt_init(
 #endif /* !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_STMTVTAB) */
 
 /************** End of stmt.c ************************************************/
-#if __LINE__!=228480
+#if __LINE__!=228484
 #undef SQLITE_SOURCE_ID
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 c0e9158b55b24ba7b1ae95a3fb37559fc1026ac153bca9d05eb4dba1a0aealt2"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 3b3519d52271c5efc55509b912b8f9928eeb552f894fb8b4716372706965alt2"
 #endif
 /* Return the source-id for this library */
 SQLITE_API const char *sqlite3_sourceid(void){ return SQLITE_SOURCE_ID; }
