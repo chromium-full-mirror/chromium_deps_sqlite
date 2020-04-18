@@ -1167,7 +1167,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.31.1"
 #define SQLITE_VERSION_NUMBER 3031001
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 3b3519d52271c5efc55509b912b8f9928eeb552f894fb8b4716372706965alt1"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 e7a73975435f2309209b06e85694aa2fdca4eca26bc2b86bf146fbe00ea1alt1"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -180087,6 +180087,12 @@ SQLITE_PRIVATE int sqlite3Fts3Incrmerge(Fts3Table *p, int nMerge, int nMin){
     ** Exit early in this case.  */
     if( nSeg<=0 ) break;
 
+    assert( nMod<=0x7FFFFFFF );
+    if( iAbsLevel<0 || iAbsLevel>(nMod<<32) ){
+      rc = FTS_CORRUPT_VTAB;
+      break;
+    }
+
     /* Open a cursor to iterate through the contents of the oldest nSeg 
     ** indexes of absolute level iAbsLevel. If this cursor is opened using 
     ** the 'hint' parameters, it is possible that there are less than nSeg
@@ -228481,9 +228487,9 @@ SQLITE_API int sqlite3_stmt_init(
 #endif /* !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_STMTVTAB) */
 
 /************** End of stmt.c ************************************************/
-#if __LINE__!=228484
+#if __LINE__!=228490
 #undef SQLITE_SOURCE_ID
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 3b3519d52271c5efc55509b912b8f9928eeb552f894fb8b4716372706965alt2"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 e7a73975435f2309209b06e85694aa2fdca4eca26bc2b86bf146fbe00ea1alt2"
 #endif
 /* Return the source-id for this library */
 SQLITE_API const char *sqlite3_sourceid(void){ return SQLITE_SOURCE_ID; }
