@@ -1167,7 +1167,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.31.1"
 #define SQLITE_VERSION_NUMBER 3031001
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 e7a73975435f2309209b06e85694aa2fdca4eca26bc2b86bf146fbe00ea1alt1"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 6e14b895339cf4e6257f8c6f60c135d1f050105b705a4f55b87409f858fbalt1"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -97945,7 +97945,7 @@ static int resolveOrderByTermToExprList(
   nc.nErr = 0;
   db = pParse->db;
   savedSuppErr = db->suppressErr;
-  db->suppressErr = 1;
+  if( IN_RENAME_OBJECT==0 ) db->suppressErr = 1;
   rc = sqlite3ResolveExprNames(&nc, pE);
   db->suppressErr = savedSuppErr;
   if( rc ) return 0;
@@ -228489,7 +228489,7 @@ SQLITE_API int sqlite3_stmt_init(
 /************** End of stmt.c ************************************************/
 #if __LINE__!=228490
 #undef SQLITE_SOURCE_ID
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 e7a73975435f2309209b06e85694aa2fdca4eca26bc2b86bf146fbe00ea1alt2"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 6e14b895339cf4e6257f8c6f60c135d1f050105b705a4f55b87409f858fbalt2"
 #endif
 /* Return the source-id for this library */
 SQLITE_API const char *sqlite3_sourceid(void){ return SQLITE_SOURCE_ID; }
