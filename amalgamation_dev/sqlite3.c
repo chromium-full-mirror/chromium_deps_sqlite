@@ -1167,7 +1167,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.31.1"
 #define SQLITE_VERSION_NUMBER 3031001
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 6e14b895339cf4e6257f8c6f60c135d1f050105b705a4f55b87409f858fbalt1"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 76d675fab066290ce32b220f3d96edfdbaa0ecca14cc39736efb7df23fe2alt1"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -176549,6 +176549,7 @@ static int fts3SegReaderNext(
   */
   if( pReader->nDoclist > pReader->nNode-(pReader->aDoclist-pReader->aNode)
    || (pReader->nPopulate==0 && pReader->aDoclist[pReader->nDoclist-1])
+   || pReader->nDoclist==0
   ){
     return FTS_CORRUPT_VTAB;
   }
@@ -228487,9 +228488,9 @@ SQLITE_API int sqlite3_stmt_init(
 #endif /* !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_STMTVTAB) */
 
 /************** End of stmt.c ************************************************/
-#if __LINE__!=228490
+#if __LINE__!=228491
 #undef SQLITE_SOURCE_ID
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 6e14b895339cf4e6257f8c6f60c135d1f050105b705a4f55b87409f858fbalt2"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 76d675fab066290ce32b220f3d96edfdbaa0ecca14cc39736efb7df23fe2alt2"
 #endif
 /* Return the source-id for this library */
 SQLITE_API const char *sqlite3_sourceid(void){ return SQLITE_SOURCE_ID; }
