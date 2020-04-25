@@ -1167,7 +1167,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.31.1"
 #define SQLITE_VERSION_NUMBER 3031001
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 76d675fab066290ce32b220f3d96edfdbaa0ecca14cc39736efb7df23fe2alt1"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 c1f3948f8bd6552e4936c1d0ca1c10d18a89b13843431f9f9c20ef69fc93alt1"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -164677,6 +164677,7 @@ SQLITE_PRIVATE int sqlite3Fts3EvalPhraseStats(Fts3Cursor *, Fts3Expr *, u32 *);
 SQLITE_PRIVATE int sqlite3Fts3FirstFilter(sqlite3_int64, char *, int, char *);
 SQLITE_PRIVATE void sqlite3Fts3CreateStatTable(int*, Fts3Table*);
 SQLITE_PRIVATE int sqlite3Fts3EvalTestDeferred(Fts3Cursor *pCsr, int *pRc);
+SQLITE_PRIVATE int sqlite3Fts3ReadInt(const char *z, int *pnOut);
 
 /* fts3_tokenizer.c */
 SQLITE_PRIVATE const char *sqlite3Fts3NextToken(const char *, int *);
@@ -165410,6 +165411,22 @@ static char *fts3WriteExprList(Fts3Table *p, const char *zFunc, int *pRc){
 }
 
 /*
+** Buffer z contains a positive integer value encoded as utf-8 text.
+** Decode this value and store it in *pnOut, returning the number of bytes
+** consumed. If an overflow error occurs return a negative value.
+*/
+SQLITE_PRIVATE int sqlite3Fts3ReadInt(const char *z, int *pnOut){
+  u64 iVal = 0;
+  int i;
+  for(i=0; z[i]>='0' && z[i]<='9'; i++){
+    iVal = iVal*10 + (z[i] - '0');
+    if( iVal>0x7FFFFFFF ) return -1;
+  }
+  *pnOut = (int)iVal;
+  return i;
+}
+
+/*
 ** This function interprets the string at (*pp) as a non-negative integer
 ** value. It reads the integer and sets *pnOut to the value read, then 
 ** sets *pp to point to the byte immediately following the last byte of
@@ -165424,19 +165441,17 @@ static char *fts3WriteExprList(Fts3Table *p, const char *zFunc, int *pRc){
 */
 static int fts3GobbleInt(const char **pp, int *pnOut){
   const int MAX_NPREFIX = 10000000;
-  const char *p;                  /* Iterator pointer */
   int nInt = 0;                   /* Output value */
-
-  for(p=*pp; p[0]>='0' && p[0]<='9'; p++){
-    nInt = nInt * 10 + (p[0] - '0');
-    if( nInt>MAX_NPREFIX ){
-      nInt = 0;
-      break;
-    }
+  int nByte;
+  nByte = sqlite3Fts3ReadInt(*pp, &nInt);
+  if( nInt>MAX_NPREFIX ){
+    nInt = 0;
   }
-  if( p==*pp ) return SQLITE_ERROR;
+  if( nByte==0 ){
+    return SQLITE_ERROR;
+  }
   *pnOut = nInt;
-  *pp = p;
+  *pp += nByte;
   return SQLITE_OK;
 }
 
@@ -171518,10 +171533,7 @@ static int getNextNode(
       if( pKey->eType==FTSQUERY_NEAR ){
         assert( nKey==4 );
         if( zInput[4]=='/' && zInput[5]>='0' && zInput[5]<='9' ){
-          nNear = 0;
-          for(nKey=5; zInput[nKey]>='0' && zInput[nKey]<='9'; nKey++){
-            nNear = nNear * 10 + (zInput[nKey] - '0');
-          }
+          nKey += 1+sqlite3Fts3ReadInt(&zInput[nKey+1], &nNear);
         }
       }
 
@@ -177704,11 +177716,11 @@ static void fts3ReadEndBlockField(
   if( zText ){
     int i;
     int iMul = 1;
-    i64 iVal = 0;
+    u64 iVal = 0;
     for(i=0; zText[i]>='0' && zText[i]<='9'; i++){
       iVal = iVal*10 + (zText[i] - '0');
     }
-    *piEndBlock = iVal;
+    *piEndBlock = (i64)iVal;
     while( zText[i]==' ' ) i++;
     iVal = 0;
     if( zText[i]=='-' ){
@@ -177718,7 +177730,7 @@ static void fts3ReadEndBlockField(
     for(/* no-op */; zText[i]>='0' && zText[i]<='9'; i++){
       iVal = iVal*10 + (zText[i] - '0');
     }
-    *pnByte = (iVal * (i64)iMul);
+    *pnByte = ((i64)iVal * (i64)iMul);
   }
 }
 
@@ -227989,9 +228001,9 @@ SQLITE_API int sqlite3_stmt_init(
 #endif /* !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_STMTVTAB) */
 
 /************** End of stmt.c ************************************************/
-#if __LINE__!=227992
+#if __LINE__!=228004
 #undef SQLITE_SOURCE_ID
-#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 76d675fab066290ce32b220f3d96edfdbaa0ecca14cc39736efb7df23fe2alt2"
+#define SQLITE_SOURCE_ID      "2020-01-27 19:55:54 c1f3948f8bd6552e4936c1d0ca1c10d18a89b13843431f9f9c20ef69fc93alt2"
 #endif
 /* Return the source-id for this library */
 SQLITE_API const char *sqlite3_sourceid(void){ return SQLITE_SOURCE_ID; }
