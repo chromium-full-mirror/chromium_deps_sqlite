@@ -1164,7 +1164,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.32.1"
 #define SQLITE_VERSION_NUMBER 3032001
-#define SQLITE_SOURCE_ID      "2020-05-25 16:19:56 0c1fcf4711a2e66c813aed38cf41cd3e2123ee8eb6db98118086764c4ba83350"
+#define SQLITE_SOURCE_ID      "2020-05-25 16:19:56 4a8744e8b307f2f763ebd296a34cc42f2e7287ef79d6fa618e7b315631f5c8cf"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -101525,8 +101525,10 @@ static int exprNodeIsConstant(Walker *pWalker, Expr *pExpr){
       /* Fall through */
     case TK_IF_NULL_ROW:
     case TK_REGISTER:
+    case TK_DOT:
       testcase( pExpr->op==TK_REGISTER );
       testcase( pExpr->op==TK_IF_NULL_ROW );
+      testcase( pExpr->op==TK_DOT );
       pWalker->eCode = 0;
       return WRC_Abort;
     case TK_VARIABLE:
@@ -224822,7 +224824,7 @@ static void fts5SourceIdFunc(
 ){
   assert( nArg==0 );
   UNUSED_PARAM2(nArg, apUnused);
-  sqlite3_result_text(pCtx, "fts5: 2020-05-25 16:19:56 0c1fcf4711a2e66c813aed38cf41cd3e2123ee8eb6db98118086764c4ba83350", -1, SQLITE_TRANSIENT);
+  sqlite3_result_text(pCtx, "fts5: 2020-05-25 16:19:56 0000000000000000000000000000000000000000000000000000000000000000", -1, SQLITE_TRANSIENT);
 }
 
 /*
@@ -229605,9 +229607,9 @@ SQLITE_API int sqlite3_stmt_init(
 #endif /* !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_STMTVTAB) */
 
 /************** End of stmt.c ************************************************/
-#if __LINE__!=229608
+#if __LINE__!=229610
 #undef SQLITE_SOURCE_ID
-#define SQLITE_SOURCE_ID      "2020-05-25 16:19:56 0c1fcf4711a2e66c813aed38cf41cd3e2123ee8eb6db98118086764c4ba8alt2"
+#define SQLITE_SOURCE_ID      "2020-05-25 16:19:56 4a8744e8b307f2f763ebd296a34cc42f2e7287ef79d6fa618e7b315631f5alt2"
 #endif
 /* Return the source-id for this library */
 SQLITE_API const char *sqlite3_sourceid(void){ return SQLITE_SOURCE_ID; }
