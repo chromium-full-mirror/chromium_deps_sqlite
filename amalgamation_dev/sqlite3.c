@@ -1164,7 +1164,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.32.1"
 #define SQLITE_VERSION_NUMBER 3032001
-#define SQLITE_SOURCE_ID      "2020-05-25 16:19:56 4a8744e8b307f2f763ebd296a34cc42f2e7287ef79d6fa618e7b315631f5c8cf"
+#define SQLITE_SOURCE_ID      "2020-05-25 16:19:56 733705d72dbb3812c8bad28795d7086e3c41ccdef128e6c56723dab0f0432dc3"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -176578,7 +176578,9 @@ static int fts3SqlStmt(
 ** created by merging the oldest :2 segments from absolute level :1. See 
 ** function sqlite3Fts3Incrmerge() for details.  */
 /* 29 */ "SELECT 2 * total(1 + leaves_end_block - start_block) "
-         "  FROM %Q.'%q_segdir' WHERE level = ? AND idx < ?",
+         "  FROM (SELECT * FROM %Q.'%q_segdir' "
+         "        WHERE level = ? ORDER BY idx ASC LIMIT ?"
+         "  )",
 
 /* SQL_DELETE_SEGDIR_ENTRY
 **   Delete the %_segdir entry on absolute level :1 with index :2.  */
@@ -229607,9 +229609,9 @@ SQLITE_API int sqlite3_stmt_init(
 #endif /* !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_STMTVTAB) */
 
 /************** End of stmt.c ************************************************/
-#if __LINE__!=229610
+#if __LINE__!=229612
 #undef SQLITE_SOURCE_ID
-#define SQLITE_SOURCE_ID      "2020-05-25 16:19:56 4a8744e8b307f2f763ebd296a34cc42f2e7287ef79d6fa618e7b315631f5alt2"
+#define SQLITE_SOURCE_ID      "2020-05-25 16:19:56 733705d72dbb3812c8bad28795d7086e3c41ccdef128e6c56723dab0f043alt2"
 #endif
 /* Return the source-id for this library */
 SQLITE_API const char *sqlite3_sourceid(void){ return SQLITE_SOURCE_ID; }
