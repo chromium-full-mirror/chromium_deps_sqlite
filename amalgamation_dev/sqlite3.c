@@ -50435,6 +50435,7 @@ static PgHdr1 *pcache1AllocPage(PCache1 *pCache, int benignMalloc){
     p->page.pExtra = &p[1];
     p->isBulkLocal = 0;
     p->isAnchor = 0;
+    p->pLruPrev = 0;           /* Initializing this saves a valgrind error */
   }
   (*pCache->pnPurgeable)++;
   return p;
@@ -72337,7 +72338,9 @@ static int balance_nonroot(
   }
   pgno = get4byte(pRight);
   while( 1 ){
-    rc = getAndInitPage(pBt, pgno, &apOld[i], 0, 0);
+    if( rc==SQLITE_OK ){
+      rc = getAndInitPage(pBt, pgno, &apOld[i], 0, 0);
+    }
     if( rc ){
       memset(apOld, 0, (i+1)*sizeof(MemPage*));
       goto balance_cleanup;
@@ -72376,12 +72379,10 @@ static int balance_nonroot(
       if( pBt->btsFlags & BTS_FAST_SECURE ){
         int iOff;
 
+        /* If the following if() condition is not true, the db is corrupted.
+        ** The call to dropCell() below will detect this.  */
         iOff = SQLITE_PTR_TO_INT(apDiv[i]) - SQLITE_PTR_TO_INT(pParent->aData);
-        if( (iOff+szNew[i])>(int)pBt->usableSize ){
-          rc = SQLITE_CORRUPT_BKPT;
-          memset(apOld, 0, (i+1)*sizeof(MemPage*));
-          goto balance_cleanup;
-        }else{
+        if( (iOff+szNew[i])<=(int)pBt->usableSize ){
           memcpy(&aOvflSpace[iOff], apDiv[i], szNew[i]);
           apDiv[i] = &aOvflSpace[apDiv[i]-pParent->aData];
         }
@@ -231747,7 +231748,7 @@ SQLITE_API int sqlite3_stmt_init(
 #endif /* !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_STMTVTAB) */
 
 /************** End of stmt.c ************************************************/
-#if __LINE__!=231750
+#if __LINE__!=231751
 #undef SQLITE_SOURCE_ID
 #define SQLITE_SOURCE_ID      "2020-12-01 16:14:00 b7738010bc8ef02ba84820368e557306390a33c38adaa5c7703154bae3edalt2"
 #endif
