@@ -1188,7 +1188,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.35.5"
 #define SQLITE_VERSION_NUMBER 3035005
-#define SQLITE_SOURCE_ID      "2021-04-19 18:32:05 1b256d97b553a9611efca188a3d995a2fff712759044ba480f9a0c9e98fae886"
+#define SQLITE_SOURCE_ID      "2021-04-19 18:32:05 1b256d97b553a9611efca188a3d995a2fff712759044ba480f9a0c9e98faalt1"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -72110,7 +72110,9 @@ static int pageFreeArray(
         }
         pFree = pCell;
         szFree = sz;
-        if( pFree+sz>pEnd ) return 0;
+        if( NEVER(pFree+sz>pEnd) ){
+          return 0;  /* Corruption - should be previously detected */
+        }
       }else{
         pFree = pCell;
         szFree += sz;
@@ -73086,6 +73088,7 @@ static int balance_nonroot(
     u8 *pCell;
     u8 *pTemp;
     int sz;
+    u8 *pSrcEnd;
     MemPage *pNew = apNew[i];
     j = cntNew[i];
 
@@ -73129,6 +73132,12 @@ static int balance_nonroot(
     iOvflSpace += sz;
     assert( sz<=pBt->maxLocal+23 );
     assert( iOvflSpace <= (int)pBt->pageSize );
+    for(k=0; b.ixNx[k]<=i && ALWAYS(k<NB*2); k++){}
+    pSrcEnd = b.apEnd[k];
+    if( SQLITE_WITHIN(pSrcEnd, pCell, pCell+sz) ){
+      rc = SQLITE_CORRUPT_BKPT;
+      goto balance_cleanup;
+    }
     insertCell(pParent, nxDiv+i, pCell, sz, pTemp, pNew->pgno, &rc);
     if( rc!=SQLITE_OK ) goto balance_cleanup;
     assert( sqlite3PagerIswriteable(pParent->pDbPage) );
@@ -228795,7 +228804,7 @@ static void fts5SourceIdFunc(
 ){
   assert( nArg==0 );
   UNUSED_PARAM2(nArg, apUnused);
-  sqlite3_result_text(pCtx, "fts5: 2021-04-19 18:32:05 1b256d97b553a9611efca188a3d995a2fff712759044ba480f9a0c9e98fae886", -1, SQLITE_TRANSIENT);
+  sqlite3_result_text(pCtx, "fts5: 2021-04-19 18:32:05 0000000000000000000000000000000000000000000000000000000000000000", -1, SQLITE_TRANSIENT);
 }
 
 /*
@@ -233721,7 +233730,7 @@ SQLITE_API int sqlite3_stmt_init(
 #endif /* !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_STMTVTAB) */
 
 /************** End of stmt.c ************************************************/
-#if __LINE__!=233724
+#if __LINE__!=233733
 #undef SQLITE_SOURCE_ID
 #define SQLITE_SOURCE_ID      "2021-04-19 18:32:05 1b256d97b553a9611efca188a3d995a2fff712759044ba480f9a0c9e98faalt2"
 #endif
