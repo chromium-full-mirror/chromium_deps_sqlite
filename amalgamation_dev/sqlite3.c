@@ -1188,7 +1188,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.35.5"
 #define SQLITE_VERSION_NUMBER 3035005
-#define SQLITE_SOURCE_ID      "2021-04-19 18:32:05 1b256d97b553a9611efca188a3d995a2fff712759044ba480f9a0c9e98faalt1"
+#define SQLITE_SOURCE_ID      "2021-04-19 18:32:05 ddcd1b9433f5dae63db5295acbfec8bc954cc15c7439b0095f9cd4f7aa21alt1"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -134844,7 +134844,10 @@ static void srclistRenumberCursors(
   for(i=0, pItem=pSrc->a; i<pSrc->nSrc; i++, pItem++){
     if( i!=iExcept ){
       Select *p;
-      pItem->iCursor = aCsrMap[pItem->iCursor] = pParse->nTab++;
+      if( !pItem->fg.isRecursive || aCsrMap[pItem->iCursor]==0 ){
+        aCsrMap[pItem->iCursor] = pParse->nTab++;
+      }
+      pItem->iCursor = aCsrMap[pItem->iCursor];
       for(p=pItem->pSelect; p; p=p->pPrior){
         srclistRenumberCursors(pParse, aCsrMap, p->pSrc, -1);
       }
@@ -234241,9 +234244,9 @@ SQLITE_API int sqlite3_stmt_init(
 #endif /* !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_STMTVTAB) */
 
 /************** End of stmt.c ************************************************/
-#if __LINE__!=234244
+#if __LINE__!=234247
 #undef SQLITE_SOURCE_ID
-#define SQLITE_SOURCE_ID      "2021-04-19 18:32:05 1b256d97b553a9611efca188a3d995a2fff712759044ba480f9a0c9e98faalt2"
+#define SQLITE_SOURCE_ID      "2021-04-19 18:32:05 ddcd1b9433f5dae63db5295acbfec8bc954cc15c7439b0095f9cd4f7aa21alt2"
 #endif
 /* Return the source-id for this library */
 SQLITE_API const char *sqlite3_sourceid(void){ return SQLITE_SOURCE_ID; }
