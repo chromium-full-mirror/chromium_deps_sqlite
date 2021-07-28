@@ -1207,7 +1207,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.36.0"
 #define SQLITE_VERSION_NUMBER 3036000
-#define SQLITE_SOURCE_ID      "2021-06-18 18:36:39 5c9a6c06871cb9fe42814af9c039eb6da5427a6ec28f187af7ebfb62eafa66e5"
+#define SQLITE_SOURCE_ID      "2021-06-18 18:36:39 e818ad42bf57acb03d3587bed8fb83a1cd4d397545ccf3a0ec30f17154e7bc20"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -132931,7 +132931,9 @@ static void fixDistinctOpenEph(
   int iVal,          /* Value returned by codeDistinct() */
   int iOpenEphAddr   /* Address of OP_OpenEphemeral instruction for iTab */
 ){
-  if( eTnctType==WHERE_DISTINCT_UNIQUE || eTnctType==WHERE_DISTINCT_ORDERED ){
+  if( pParse->nErr==0
+   && (eTnctType==WHERE_DISTINCT_UNIQUE || eTnctType==WHERE_DISTINCT_ORDERED)
+  ){
     Vdbe *v = pParse->pVdbe;
     sqlite3VdbeChangeToNoop(v, iOpenEphAddr);
     if( sqlite3VdbeGetOp(v, iOpenEphAddr+1)->opcode==OP_Explain ){
@@ -230066,7 +230068,7 @@ static void fts5SourceIdFunc(
 ){
   assert( nArg==0 );
   UNUSED_PARAM2(nArg, apUnused);
-  sqlite3_result_text(pCtx, "fts5: 2021-06-18 18:36:39 5c9a6c06871cb9fe42814af9c039eb6da5427a6ec28f187af7ebfb62eafa66e5", -1, SQLITE_TRANSIENT);
+  sqlite3_result_text(pCtx, "fts5: 2021-06-18 18:36:39 0000000000000000000000000000000000000000000000000000000000000000", -1, SQLITE_TRANSIENT);
 }
 
 /*
@@ -234992,9 +234994,9 @@ SQLITE_API int sqlite3_stmt_init(
 #endif /* !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_STMTVTAB) */
 
 /************** End of stmt.c ************************************************/
-#if __LINE__!=234995
+#if __LINE__!=234997
 #undef SQLITE_SOURCE_ID
-#define SQLITE_SOURCE_ID      "2021-06-18 18:36:39 5c9a6c06871cb9fe42814af9c039eb6da5427a6ec28f187af7ebfb62eafaalt2"
+#define SQLITE_SOURCE_ID      "2021-06-18 18:36:39 e818ad42bf57acb03d3587bed8fb83a1cd4d397545ccf3a0ec30f17154e7alt2"
 #endif
 /* Return the source-id for this library */
 SQLITE_API const char *sqlite3_sourceid(void){ return SQLITE_SOURCE_ID; }
