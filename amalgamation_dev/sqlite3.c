@@ -454,7 +454,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.38.0"
 #define SQLITE_VERSION_NUMBER 3038000
-#define SQLITE_SOURCE_ID      "2022-02-22 18:58:40 40fa792d359f84c3b9e9d6623743e1a59826274e221df1bde8f47086968a1bab"
+#define SQLITE_SOURCE_ID      "2022-02-22 18:58:40 1c2b6a704d739e5610a4b30a8ce4529381295ccd82bb84ee97d2e79879e6fd08"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -65398,7 +65398,9 @@ struct MemPage {
   u8 *apOvfl[4];       /* Pointers to the body of overflow cells */
   BtShared *pBt;       /* Pointer to BtShared that this page is part of */
   u8 *aData;           /* Pointer to disk image of the page data */
-  u8 *aDataEnd;        /* One byte past the end of usable data */
+  u8 *aDataEnd;        /* One byte past the end of the entire page - not just
+                       ** the usable space, the entire page.  Used to prevent
+                       ** corruption-induced of buffer overflow. */
   u8 *aCellIdx;        /* The cell index area */
   u8 *aDataOfst;       /* Same as aData for leaves.  aData+4 for interior */
   DbPage *pDbPage;     /* Pager page handle */
@@ -68183,7 +68185,7 @@ static int btreeInitPage(MemPage *pPage){
   pPage->nOverflow = 0;
   pPage->cellOffset = pPage->hdrOffset + 8 + pPage->childPtrSize;
   pPage->aCellIdx = data + pPage->childPtrSize + 8;
-  pPage->aDataEnd = pPage->aData + pBt->usableSize;
+  pPage->aDataEnd = pPage->aData + pBt->pageSize;
   pPage->aDataOfst = pPage->aData + pPage->childPtrSize;
   /* EVIDENCE-OF: R-37002-32774 The two-byte integer at offset 3 gives the
   ** number of cells on the page. */
@@ -68234,7 +68236,7 @@ static void zeroPage(MemPage *pPage, int flags){
   pPage->nFree = (u16)(pBt->usableSize - first);
   decodeFlags(pPage, flags);
   pPage->cellOffset = first;
-  pPage->aDataEnd = &data[pBt->usableSize];
+  pPage->aDataEnd = &data[pBt->pageSize];
   pPage->aCellIdx = &data[first];
   pPage->aDataOfst = &data[pPage->childPtrSize];
   pPage->nOverflow = 0;
@@ -234300,7 +234302,7 @@ static void fts5SourceIdFunc(
 ){
   assert( nArg==0 );
   UNUSED_PARAM2(nArg, apUnused);
-  sqlite3_result_text(pCtx, "fts5: 2022-02-22 18:58:40 40fa792d359f84c3b9e9d6623743e1a59826274e221df1bde8f47086968a1bab", -1, SQLITE_TRANSIENT);
+  sqlite3_result_text(pCtx, "fts5: 2022-02-22 18:58:40 0000000000000000000000000000000000000000000000000000000000000000", -1, SQLITE_TRANSIENT);
 }
 
 /*
