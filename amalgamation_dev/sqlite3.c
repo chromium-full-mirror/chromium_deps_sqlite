@@ -454,7 +454,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.39.1"
 #define SQLITE_VERSION_NUMBER 3039001
-#define SQLITE_SOURCE_ID      "2022-07-13 19:41:41 7c16541a0efb3985578181171c9f2bb3fdc4bad6a2ec85c6e31ab96f3eff201f"
+#define SQLITE_SOURCE_ID      "2022-07-14 01:49:17 b88d6c4b814ec4166ec50f32a2f10d7857df05414c0048c1234ab290a273e50c"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -142375,7 +142375,9 @@ SQLITE_PRIVATE int sqlite3Select(
     ){
       SELECTTRACE(0x100,pParse,p,
                 ("omit superfluous ORDER BY on %r FROM-clause subquery\n",i+1));
-      sqlite3ExprListDelete(db, pSub->pOrderBy);
+      sqlite3ParserAddCleanup(pParse,
+         (void(*)(sqlite3*,void*))sqlite3ExprListDelete,
+         pSub->pOrderBy);
       pSub->pOrderBy = 0;
     }
 
@@ -236641,7 +236643,7 @@ static void fts5SourceIdFunc(
 ){
   assert( nArg==0 );
   UNUSED_PARAM2(nArg, apUnused);
-  sqlite3_result_text(pCtx, "fts5: 2022-07-13 19:41:41 7c16541a0efb3985578181171c9f2bb3fdc4bad6a2ec85c6e31ab96f3eff201f", -1, SQLITE_TRANSIENT);
+  sqlite3_result_text(pCtx, "fts5: 2022-07-14 01:49:17 0000000000000000000000000000000000000000000000000000000000000000", -1, SQLITE_TRANSIENT);
 }
 
 /*
