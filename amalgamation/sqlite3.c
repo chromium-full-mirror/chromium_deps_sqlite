@@ -454,7 +454,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.38.1"
 #define SQLITE_VERSION_NUMBER 3038001
-#define SQLITE_SOURCE_ID      "2022-03-12 13:37:29 77fe6454b9f28145248a0f14f2f6a6d72c606f5dabaf4895a850336a38df7efc"
+#define SQLITE_SOURCE_ID      "2022-03-12 13:37:29 86341e9263a431aa06b41232fc3199ea756f68db405190e11fbab2b207a2882e"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -100475,33 +100475,23 @@ static void resolveAlias(
     sqlite3ExprDelete(db, pDup);
     pDup = 0;
   }else{
+    Expr temp;
     incrAggFunctionDepth(pDup, nSubquery);
     if( pExpr->op==TK_COLLATE ){
       assert( !ExprHasProperty(pExpr, EP_IntValue) );
       pDup = sqlite3ExprAddCollateString(pParse, pDup, pExpr->u.zToken);
     }
-
-    /* Before calling sqlite3ExprDelete(), set the EP_Static flag. This
-    ** prevents ExprDelete() from deleting the Expr structure itself,
-    ** allowing it to be repopulated by the memcpy() on the following line.
-    ** The pExpr->u.zToken might point into memory that will be freed by the
-    ** sqlite3DbFree(db, pDup) on the last line of this block, so be sure to
-    ** make a copy of the token before doing the sqlite3DbFree().
-    */
-    ExprSetProperty(pExpr, EP_Static);
-    sqlite3ExprDelete(db, pExpr);
-    memcpy(pExpr, pDup, sizeof(*pExpr));
-    if( !ExprHasProperty(pExpr, EP_IntValue) && pExpr->u.zToken!=0 ){
-      assert( (pExpr->flags & (EP_Reduced|EP_TokenOnly))==0 );
-      pExpr->u.zToken = sqlite3DbStrDup(db, pExpr->u.zToken);
-      pExpr->flags |= EP_MemToken;
-    }
+    memcpy(&temp, pDup, sizeof(Expr));
+    memcpy(pDup, pExpr, sizeof(Expr));
+    memcpy(pExpr, &temp, sizeof(Expr));
     if( ExprHasProperty(pExpr, EP_WinFunc) ){
       if( ALWAYS(pExpr->y.pWin!=0) ){
         pExpr->y.pWin->pOwner = pExpr;
       }
     }
-    sqlite3DbFree(db, pDup);
+    sqlite3ParserAddCleanup(pParse,
+      (void(*)(sqlite3*,void*))sqlite3ExprDelete,
+      pDup);
   }
 }
 
