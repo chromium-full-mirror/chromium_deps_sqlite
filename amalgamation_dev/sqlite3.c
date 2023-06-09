@@ -458,7 +458,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.42.0"
 #define SQLITE_VERSION_NUMBER 3042000
-#define SQLITE_SOURCE_ID      "2023-05-16 12:36:15 803f461c31dfca38d213877a119bc8f69fce5976f8909ace96eebcfb0d5291c9"
+#define SQLITE_SOURCE_ID      "2023-05-16 12:36:15 ec7dafdf189a95ffcd452db5e3b5370d8f7007c56a7dee464cc700fdd1027368"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -70350,7 +70350,7 @@ static int defragmentPage(MemPage *pPage, int nMaxFrag){
   iCellStart = get2byte(&data[hdr+5]);
   if( nCell>0 ){
     temp = sqlite3PagerTempSpace(pPage->pBt->pPager);
-    memcpy(&temp[iCellStart], &data[iCellStart], usableSize - iCellStart);
+    memcpy(temp, data, usableSize);
     src = temp;
     for(i=0; i<nCell; i++){
       u8 *pAddr;     /* The i-th cell pointer */
