@@ -18,7 +18,7 @@
 ** separate file. This file contains only code for the core SQLite library.
 **
 ** The content in this amalgamation comes from Fossil check-in
-** 310099cce5a487035fa535dd3002c59ac7f with changes in files:
+** 75041c81d77bbbb6a6cceeb9411689d6af8 with changes in files:
 **
 **    manifest.uuid
 */
@@ -463,7 +463,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.43.2"
 #define SQLITE_VERSION_NUMBER 3043002
-#define SQLITE_SOURCE_ID      "2023-10-10 12:14:04 4310099cce5a487035fa535dd3002c59ac7f1d1bec68d7cf317fd3e769484790"
+#define SQLITE_SOURCE_ID      "2023-10-10 12:14:04 475041c81d77bbbb6a6cceeb9411689d6af86bc7583a1ecbf73df703b89831d3"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -20957,7 +20957,7 @@ SQLITE_PRIVATE int sqlite3ApiExit(sqlite3 *db, int);
 SQLITE_PRIVATE int sqlite3OpenTempDatabase(Parse *);
 
 SQLITE_PRIVATE char *sqlite3RCStrRef(char*);
-SQLITE_PRIVATE void sqlite3RCStrUnref(char*);
+SQLITE_PRIVATE void sqlite3RCStrUnref(void*);
 SQLITE_PRIVATE char *sqlite3RCStrNew(u64);
 SQLITE_PRIVATE char *sqlite3RCStrResize(char*,u64);
 
@@ -31819,7 +31819,7 @@ SQLITE_PRIVATE char *sqlite3RCStrRef(char *z){
 ** Decrease the reference count by one.  Free the string when the
 ** reference count reaches zero.
 */
-SQLITE_PRIVATE void sqlite3RCStrUnref(char *z){
+SQLITE_PRIVATE void sqlite3RCStrUnref(void *z){
   RCStr *p = (RCStr*)z;
   assert( p!=0 );
   p--;
@@ -82011,7 +82011,7 @@ SQLITE_PRIVATE void sqlite3VdbeMemZeroTerminateIfAble(Mem *pMem){
       pMem->flags |= MEM_Term;
       return;
     }
-    if( pMem->xDel==(void(*)(void*))sqlite3RCStrUnref ){
+    if( pMem->xDel==sqlite3RCStrUnref ){
       /* Blindly assume that all RCStr objects are zero-terminated */
       pMem->flags |= MEM_Term;
       return;
@@ -92516,11 +92516,11 @@ static SQLITE_NOINLINE int vdbeColumnFromOverflow(
     sqlite3RCStrRef(pBuf);
     if( t&1 ){
       rc = sqlite3VdbeMemSetStr(pDest, pBuf, len, encoding,
-                                (void(*)(void*))sqlite3RCStrUnref);
+                                sqlite3RCStrUnref);
       pDest->flags |= MEM_Term;
     }else{
       rc = sqlite3VdbeMemSetStr(pDest, pBuf, len, 0,
-                                (void(*)(void*))sqlite3RCStrUnref);
+                                sqlite3RCStrUnref);
     }
   }else{
     rc = sqlite3VdbeMemFromBtree(pC->uc.pCursor, iOffset, len, pDest);
@@ -201328,7 +201328,7 @@ static void jsonResult(JsonString *p){
     }else if( jsonForceRCStr(p) ){
       sqlite3RCStrRef(p->zBuf);
       sqlite3_result_text64(p->pCtx, p->zBuf, p->nUsed,
-                            (void(*)(void*))sqlite3RCStrUnref,
+                            sqlite3RCStrUnref,
                             SQLITE_UTF8);
     }
   }
@@ -202668,7 +202668,7 @@ static JsonParse *jsonParseCached(
   /* The input JSON was not found anywhere in the cache.  We will need
   ** to parse it ourselves and generate a new JsonParse object.
   */
-  bJsonRCStr = sqlite3ValueIsOfClass(pJson,(void(*)(void*))sqlite3RCStrUnref);
+  bJsonRCStr = sqlite3ValueIsOfClass(pJson,sqlite3RCStrUnref);
   p = sqlite3_malloc64( sizeof(*p) + (bJsonRCStr ? 0 : nJson+1) );
   if( p==0 ){
     sqlite3_result_error_nomem(pCtx);
@@ -203850,7 +203850,7 @@ static void jsonArrayCompute(sqlite3_context *ctx, int isFinal){
     }else if( isFinal ){
       sqlite3_result_text(ctx, pStr->zBuf, (int)pStr->nUsed,
                           pStr->bStatic ? SQLITE_TRANSIENT :
-                              (void(*)(void*))sqlite3RCStrUnref);
+                              sqlite3RCStrUnref);
       pStr->bStatic = 1;
     }else{
       sqlite3_result_text(ctx, pStr->zBuf, (int)pStr->nUsed, SQLITE_TRANSIENT);
@@ -203959,7 +203959,7 @@ static void jsonObjectCompute(sqlite3_context *ctx, int isFinal){
     }else if( isFinal ){
       sqlite3_result_text(ctx, pStr->zBuf, (int)pStr->nUsed,
                           pStr->bStatic ? SQLITE_TRANSIENT :
-                          (void(*)(void*))sqlite3RCStrUnref);
+                          sqlite3RCStrUnref);
       pStr->bStatic = 1;
     }else{
       sqlite3_result_text(ctx, pStr->zBuf, (int)pStr->nUsed, SQLITE_TRANSIENT);
@@ -204391,7 +204391,7 @@ static int jsonEachFilter(
   if( z==0 ) return SQLITE_OK;
   memset(&p->sParse, 0, sizeof(p->sParse));
   p->sParse.nJPRef = 1;
-  if( sqlite3ValueIsOfClass(argv[0], (void(*)(void*))sqlite3RCStrUnref) ){
+  if( sqlite3ValueIsOfClass(argv[0], sqlite3RCStrUnref) ){
     p->sParse.zJson = sqlite3RCStrRef((char*)z);
   }else{
     n = sqlite3_value_bytes(argv[0]);
@@ -245252,7 +245252,7 @@ static void fts5SourceIdFunc(
 ){
   assert( nArg==0 );
   UNUSED_PARAM2(nArg, apUnused);
-  sqlite3_result_text(pCtx, "fts5: 2023-10-10 12:14:04 4310099cce5a487035fa535dd3002c59ac7f1d1bec68d7cf317fd3e769484790", -1, SQLITE_TRANSIENT);
+  sqlite3_result_text(pCtx, "fts5: 2023-10-10 12:14:04 0000000000000000000000000000000000000000000000000000000000000000", -1, SQLITE_TRANSIENT);
 }
 
 /*
