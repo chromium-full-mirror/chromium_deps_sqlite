@@ -18,7 +18,7 @@
 ** separate file. This file contains only code for the core SQLite library.
 **
 ** The content in this amalgamation comes from Fossil check-in
-** 75041c81d77bbbb6a6cceeb9411689d6af8 with changes in files:
+** beb55a1754ac544620b69f75b7b1f31893c with changes in files:
 **
 **    manifest.uuid
 */
@@ -463,7 +463,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.43.2"
 #define SQLITE_VERSION_NUMBER 3043002
-#define SQLITE_SOURCE_ID      "2023-10-10 12:14:04 475041c81d77bbbb6a6cceeb9411689d6af86bc7583a1ecbf73df703b89831d3"
+#define SQLITE_SOURCE_ID      "2023-10-10 12:14:04 5beb55a1754ac544620b69f75b7b1f31893cfacfe9d75e40789d38254bf1e050"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -101469,7 +101469,7 @@ struct SorterFile {
 struct SorterList {
   SorterRecord *pList;            /* Linked list of records */
   u8 *aMemory;                    /* If non-NULL, bulk memory to hold pList */
-  int szPMA;                      /* Size of pList as PMA in bytes */
+  i64 szPMA;                      /* Size of pList as PMA in bytes */
 };
 
 /*
@@ -101578,10 +101578,10 @@ typedef int (*SorterCompare)(SortSubtask*,int*,const void*,int,const void*,int);
 struct SortSubtask {
   SQLiteThread *pThread;          /* Background thread, if any */
   int bDone;                      /* Set if thread is finished but not joined */
+  int nPMA;                       /* Number of PMAs currently in file */
   VdbeSorter *pSorter;            /* Sorter that owns this sub-task */
   UnpackedRecord *pUnpacked;      /* Space to unpack a record */
   SorterList list;                /* List for thread to write to a PMA */
-  int nPMA;                       /* Number of PMAs currently in file */
   SorterCompare xCompare;         /* Compare function to use */
   SorterFile file;                /* Temp file for level-0 PMAs */
   SorterFile file2;               /* Space for other PMAs */
@@ -103055,8 +103055,8 @@ SQLITE_PRIVATE int sqlite3VdbeSorterWrite(
   int rc = SQLITE_OK;             /* Return Code */
   SorterRecord *pNew;             /* New list element */
   int bFlush;                     /* True to flush contents of memory to PMA */
-  int nReq;                       /* Bytes of memory required */
-  int nPMA;                       /* Bytes of PMA space required */
+  i64 nReq;                       /* Bytes of memory required */
+  i64 nPMA;                       /* Bytes of PMA space required */
   int t;                          /* serial type of first record field */
 
   assert( pCsr->eCurType==CURTYPE_SORTER );
