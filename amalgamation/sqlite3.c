@@ -18,7 +18,7 @@
 ** separate file. This file contains only code for the core SQLite library.
 **
 ** The content in this amalgamation comes from Fossil check-in
-** beb55a1754ac544620b69f75b7b1f31893c with changes in files:
+** 880e9508d4389fd84d41506c9d2e3196802 with changes in files:
 **
 **    manifest.uuid
 */
@@ -463,7 +463,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.43.2"
 #define SQLITE_VERSION_NUMBER 3043002
-#define SQLITE_SOURCE_ID      "2023-10-10 12:14:04 5beb55a1754ac544620b69f75b7b1f31893cfacfe9d75e40789d38254bf1e050"
+#define SQLITE_SOURCE_ID      "2023-10-10 12:14:04 0880e9508d4389fd84d41506c9d2e3196802bad743f210d6710dd8447f0f9c35"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -85224,7 +85224,7 @@ static void SQLITE_NOINLINE vdbeChangeP4Full(
   int n
 ){
   if( pOp->p4type ){
-    freeP4(p->db, pOp->p4type, pOp->p4.p);
+    assert( pOp->p4type > P4_FREE_IF_LE );
     pOp->p4type = 0;
     pOp->p4.p = 0;
   }
@@ -93787,7 +93787,7 @@ case OP_AddImm: {            /* in1 */
   pIn1 = &aMem[pOp->p1];
   memAboutToChange(p, pIn1);
   sqlite3VdbeMemIntegerify(pIn1);
-  pIn1->u.i += pOp->p2;
+  *(u64*)&pIn1->u.i += (u64)pOp->p2;
   break;
 }
 
