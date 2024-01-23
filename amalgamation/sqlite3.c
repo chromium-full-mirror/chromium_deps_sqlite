@@ -18,7 +18,7 @@
 ** separate file. This file contains only code for the core SQLite library.
 **
 ** The content in this amalgamation comes from Fossil check-in
-** 30b8bb5cd9d7e8f9406a74a1ab98a44499ec with changes in files:
+** ef8187b4e6fed541850250c4ad22fb3fc65a with changes in files:
 **
 **    manifest.uuid
 */
@@ -463,7 +463,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.44.2"
 #define SQLITE_VERSION_NUMBER 3044002
-#define SQLITE_SOURCE_ID      "2023-11-24 11:41:44 30b8bb5cd9d7e8f9406a74a1ab98a44499ec2fec863b40e8dc2460a8c389dade"
+#define SQLITE_SOURCE_ID      "2023-11-24 11:41:44 ef8187b4e6fed541850250c4ad22fb3fc65ad863e9e38c7059f95cb57b36435e"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -43139,11 +43139,16 @@ static int unixFetch(sqlite3_file *fd, i64 iOff, int nAmt, void **pp){
 
 #if SQLITE_MAX_MMAP_SIZE>0
   if( pFd->mmapSizeMax>0 ){
+    /* Ensure that there is always at least a 256 byte buffer of addressable
+    ** memory following the returned page. If the database is corrupt,
+    ** SQLite may overread the page slightly (in practice only a few bytes,
+    ** but 256 is safe, round, number).  */
+    const int nEofBuffer = 256;
     if( pFd->pMapRegion==0 ){
       int rc = unixMapfile(pFd, -1);
       if( rc!=SQLITE_OK ) return rc;
     }
-    if( pFd->mmapSize >= iOff+nAmt ){
+    if( pFd->mmapSize >= (iOff+nAmt+nEofBuffer) ){
       *pp = &((u8 *)pFd->pMapRegion)[iOff];
       pFd->nFetchOut++;
     }
@@ -50496,6 +50501,11 @@ static int winFetch(sqlite3_file *fd, i64 iOff, int nAmt, void **pp){
 
 #if SQLITE_MAX_MMAP_SIZE>0
   if( pFd->mmapSizeMax>0 ){
+    /* Ensure that there is always at least a 256 byte buffer of addressable
+    ** memory following the returned page. If the database is corrupt,
+    ** SQLite may overread the page slightly (in practice only a few bytes,
+    ** but 256 is safe, round, number).  */
+    const int nEofBuffer = 256;
     if( pFd->pMapRegion==0 ){
       int rc = winMapfile(pFd, -1);
       if( rc!=SQLITE_OK ){
@@ -50504,7 +50514,7 @@ static int winFetch(sqlite3_file *fd, i64 iOff, int nAmt, void **pp){
         return rc;
       }
     }
-    if( pFd->mmapSize >= iOff+nAmt ){
+    if( pFd->mmapSize >= (iOff+nAmt+nEofBuffer) ){
       assert( pFd->pMapRegion!=0 );
       *pp = &((u8 *)pFd->pMapRegion)[iOff];
       pFd->nFetchOut++;
