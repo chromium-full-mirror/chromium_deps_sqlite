@@ -18,7 +18,7 @@
 ** separate file. This file contains only code for the core SQLite library.
 **
 ** The content in this amalgamation comes from Fossil check-in
-** d8cd6d49b46a395b13955387d05e9e1a2a47 with changes in files:
+** 49d8243b931eb12d632fe26816a347f825d3 with changes in files:
 **
 **    manifest.uuid
 */
@@ -463,7 +463,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.45.2"
 #define SQLITE_VERSION_NUMBER 3045002
-#define SQLITE_SOURCE_ID      "2024-03-12 11:06:23 d8cd6d49b46a395b13955387d05e9e1a2a47e54fb99f3c9b59835bbefad6af77"
+#define SQLITE_SOURCE_ID      "2024-03-12 11:06:23 49d8243b931eb12d632fe26816a347f825d38d6df3ddd62c3edfae2a82b1ddb0"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -108649,9 +108649,10 @@ SQLITE_PRIVATE Expr *sqlite3ExprSkipCollateAndLikely(Expr *pExpr){
       assert( pExpr->x.pList->nExpr>0 );
       assert( pExpr->op==TK_FUNCTION );
       pExpr = pExpr->x.pList->a[0].pExpr;
-    }else{
-      assert( pExpr->op==TK_COLLATE );
+    }else if( pExpr->op==TK_COLLATE ){
       pExpr = pExpr->pLeft;
+    }else{
+      break;
     }
   }
   return pExpr;
@@ -250680,7 +250681,7 @@ static void fts5SourceIdFunc(
 ){
   assert( nArg==0 );
   UNUSED_PARAM2(nArg, apUnused);
-  sqlite3_result_text(pCtx, "fts5: 2024-03-12 11:06:23 d8cd6d49b46a395b13955387d05e9e1a2a47e54fb99f3c9b59835bbefad6af77", -1, SQLITE_TRANSIENT);
+  sqlite3_result_text(pCtx, "fts5: 2024-03-12 11:06:23 0000000000000000000000000000000000000000000000000000000000000000", -1, SQLITE_TRANSIENT);
 }
 
 /*
