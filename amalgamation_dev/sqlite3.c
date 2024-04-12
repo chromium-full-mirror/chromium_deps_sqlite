@@ -18,7 +18,7 @@
 ** separate file. This file contains only code for the core SQLite library.
 **
 ** The content in this amalgamation comes from Fossil check-in
-** 49d8243b931eb12d632fe26816a347f825d3 with changes in files:
+** c0b03aa071b8b0936237d880e5c46eef604a with changes in files:
 **
 **    manifest.uuid
 */
@@ -463,7 +463,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.45.2"
 #define SQLITE_VERSION_NUMBER 3045002
-#define SQLITE_SOURCE_ID      "2024-03-12 11:06:23 49d8243b931eb12d632fe26816a347f825d38d6df3ddd62c3edfae2a82b1ddb0"
+#define SQLITE_SOURCE_ID      "2024-03-12 11:06:23 c0b03aa071b8b0936237d880e5c46eef604af4ef77d91f73984b3253267ab149"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -201194,7 +201194,7 @@ static void fts3SnippetDetails(
         }
         mCover |= mPhrase;
 
-        for(j=0; j<pPhrase->nToken; j++){
+        for(j=0; j<pPhrase->nToken && j<pIter->nSnippet; j++){
           mHighlight |= (mPos>>j);
         }
 
@@ -257254,7 +257254,7 @@ static int recoverWriteSchema1(sqlite3_recover *p){
         if( bTable && !bVirtual ){
           if( SQLITE_ROW==sqlite3_step(pTblname) ){
             const char *zTbl = (const char*)sqlite3_column_text(pTblname, 0);
-            recoverAddTable(p, zTbl, iRoot);
+            if( zTbl ) recoverAddTable(p, zTbl, iRoot);
           }
           recoverReset(p, pTblname);
         }
@@ -259432,6 +259432,15 @@ static void dbdataValue(
   }
 }
 
+/* This macro is a copy of the MX_CELL() macro in the SQLite core. Given
+** a page-size, it returns the maximum number of cells that may be present
+** on the page.  */
+#define DBDATA_MX_CELL(pgsz) ((pgsz-8)/6)
+
+/* Maximum number of fields that may appear in a single record. This is
+** the "hard-limit", according to comments in sqliteLimit.h. */
+#define DBDATA_MX_FIELD 32676
+
 /*
 ** Move an sqlite_dbdata or sqlite_dbptr cursor to the next entry.
 */
@@ -259460,6 +259469,9 @@ static int dbdataNext(sqlite3_vtab_cursor *pCursor){
       assert( iOff+3+2<=pCsr->nPage );
       pCsr->iCell = pTab->bPtr ? -2 : 0;
       pCsr->nCell = get_uint16(&pCsr->aPage[iOff+3]);
+      if( pCsr->nCell>DBDATA_MX_CELL(pCsr->nPage) ){
+        pCsr->nCell = DBDATA_MX_CELL(pCsr->nPage);
+      }
     }
 
     if( pTab->bPtr ){
@@ -259504,19 +259516,19 @@ static int dbdataNext(sqlite3_vtab_cursor *pCursor){
         if( pCsr->iCell>=pCsr->nCell ){
           bNextPage = 1;
         }else{
+          int iCellPtr = iOff + 8 + nPointer + pCsr->iCell*2;
 
-          iOff += 8 + nPointer + pCsr->iCell*2;
-          if( iOff>pCsr->nPage ){
+          if( iCellPtr>pCsr->nPage ){
             bNextPage = 1;
           }else{
-            iOff = get_uint16(&pCsr->aPage[iOff]);
+            iOff = get_uint16(&pCsr->aPage[iCellPtr]);
           }
 
           /* For an interior node cell, skip past the child-page number */
           iOff += nPointer;
 
           /* Load the "byte of payload including overflow" field */
-          if( bNextPage || iOff>pCsr->nPage ){
+          if( bNextPage || iOff>pCsr->nPage || iOff<=iCellPtr ){
             bNextPage = 1;
           }else{
             iOff += dbdataGetVarintU32(&pCsr->aPage[iOff], &nPayload);
@@ -259599,7 +259611,9 @@ static int dbdataNext(sqlite3_vtab_cursor *pCursor){
         pCsr->iField++;
         if( pCsr->iField>0 ){
           sqlite3_int64 iType;
-          if( pCsr->pHdrPtr>&pCsr->pRec[pCsr->nRec] ){
+          if( pCsr->pHdrPtr>=&pCsr->pRec[pCsr->nRec]
+           || pCsr->iField>=DBDATA_MX_FIELD
+          ){
             bNextPage = 1;
           }else{
             int szField = 0;
