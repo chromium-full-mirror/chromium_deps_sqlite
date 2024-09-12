@@ -18,7 +18,7 @@
 ** separate file. This file contains only code for the core SQLite library.
 **
 ** The content in this amalgamation comes from Fossil check-in
-** a53d091fde0ed48e910ea4f8f14669644e37 with changes in files:
+** 05187da8936e631b5ba6b6af8dba383a9fa6 with changes in files:
 **
 **    manifest.uuid
 */
@@ -463,7 +463,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.46.0"
 #define SQLITE_VERSION_NUMBER 3046000
-#define SQLITE_SOURCE_ID      "2024-05-23 13:25:27 a53d091fde0ed48e910ea4f8f14669644e37e91a8a9670af7f2c9ea89e923a10"
+#define SQLITE_SOURCE_ID      "2024-05-23 13:25:27 05187da8936e631b5ba6b6af8dba383a9fa6968273051622cca09c6396bf9603"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -29091,16 +29091,29 @@ SQLITE_API void sqlite3_mutex_leave(sqlite3_mutex *p){
 /*
 ** The sqlite3_mutex_held() and sqlite3_mutex_notheld() routine are
 ** intended for use inside assert() statements.
+**
+** Because these routines raise false-positive alerts in TSAN, disable
+** them (make them always return 1) when compiling with TSAN.
 */
 SQLITE_API int sqlite3_mutex_held(sqlite3_mutex *p){
+# if defined(__has_feature)
+#   if __has_feature(thread_sanitizer)
+      p = 0;
+#   endif
+# endif
   assert( p==0 || sqlite3GlobalConfig.mutex.xMutexHeld );
   return p==0 || sqlite3GlobalConfig.mutex.xMutexHeld(p);
 }
 SQLITE_API int sqlite3_mutex_notheld(sqlite3_mutex *p){
+# if defined(__has_feature)
+#   if __has_feature(thread_sanitizer)
+      p = 0;
+#   endif
+# endif
   assert( p==0 || sqlite3GlobalConfig.mutex.xMutexNotheld );
   return p==0 || sqlite3GlobalConfig.mutex.xMutexNotheld(p);
 }
-#endif
+#endif /* NDEBUG */
 
 #endif /* !defined(SQLITE_MUTEX_OMIT) */
 
