@@ -18,8 +18,9 @@
 ** separate file. This file contains only code for the core SQLite library.
 **
 ** The content in this amalgamation comes from Fossil check-in
-** c88b22011a54b4f6fbd149e9f8e4de77658c with changes in files:
+** 7f6c00433904ca2610239e643f3b48ca43fe with changes in files:
 **
+**    manifest.uuid
 **    
 */
 #ifndef SQLITE_AMALGAMATION
@@ -469,7 +470,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.53.1"
 #define SQLITE_VERSION_NUMBER 3053001
-#define SQLITE_SOURCE_ID      "2026-05-05 10:34:17 c88b22011a54b4f6fbd149e9f8e4de77658ce58143a1af0e3785e4e6475127e9"
+#define SQLITE_SOURCE_ID      "2026-05-05 10:34:17 7f6c00433904ca2610239e643f3b48ca43fe4e8001a37379790d31c759d473d6"
 #define SQLITE_SCM_BRANCH     "branch-3.53"
 #define SQLITE_SCM_TAGS       "release version-3.53.1"
 #define SQLITE_SCM_DATETIME   "2026-05-05T10:34:17.344Z"
@@ -74754,7 +74755,7 @@ static int defragmentPage(MemPage *pPage, int nMaxFrag){
   ** reconstruct the entire page.  */
   if( (int)data[hdr+7]<=nMaxFrag ){
     int iFree = get2byte(&data[hdr+1]);
-    if( iFree>usableSize-4 ) return SQLITE_CORRUPT_PAGE(pPage);
+    if( NEVER(iFree>usableSize-4) ) return SQLITE_CORRUPT_PAGE(pPage);
     if( iFree ){
       int iFree2 = get2byte(&data[iFree]);
       if( iFree2>usableSize-4 ) return SQLITE_CORRUPT_PAGE(pPage);
@@ -78398,6 +78399,12 @@ static int accessPayload(
               (eOp==0 ? PAGER_GET_READONLY : 0)
           );
           if( rc==SQLITE_OK ){
+            if( eOp!=0
+             && (sqlite3PagerPageRefcount(pDbPage)!=1
+                 || NEVER(((MemPage*)sqlite3PagerGetExtra(pDbPage))->isInit)) ){
+              sqlite3PagerUnref(pDbPage);
+              return SQLITE_CORRUPT_PAGE(pPage);
+            }
             aPayload = sqlite3PagerGetData(pDbPage);
             nextPage = get4byte(aPayload);
             rc = copyPayload(&aPayload[offset+4], pBuf, a, eOp, pDbPage);
@@ -262710,7 +262717,7 @@ static void fts5SourceIdFunc(
 ){
   assert( nArg==0 );
   UNUSED_PARAM2(nArg, apUnused);
-  sqlite3_result_text(pCtx, "fts5: 2026-05-05 10:34:17 c88b22011a54b4f6fbd149e9f8e4de77658ce58143a1af0e3785e4e6475127e9", -1, SQLITE_TRANSIENT);
+  sqlite3_result_text(pCtx, "fts5: 2026-05-05 10:34:17 0000000000000000000000000000000000000000000000000000000000000000", -1, SQLITE_TRANSIENT);
 }
 
 /*
