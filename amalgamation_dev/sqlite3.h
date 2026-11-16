@@ -148,7 +148,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.54.1"
 #define SQLITE_VERSION_NUMBER 3054001
-#define SQLITE_SOURCE_ID      "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76"
+#define SQLITE_SOURCE_ID      "2026-10-16 14:45:20 4892a3959e1ab0d9329788cc627ef7f52bf6896f975c857d25b1632b31450612"
 #define SQLITE_SCM_BRANCH     "branch-3.54"
 #define SQLITE_SCM_TAGS       "release version-3.54.1"
 #define SQLITE_SCM_DATETIME   "2026-10-16T14:45:20.546Z"
@@ -476,6 +476,7 @@ SQLITE_API int sqlite3_exec(
 #define SQLITE_NOTADB      26   /* File opened that is not a database file */
 #define SQLITE_NOTICE      27   /* Notifications from sqlite3_log() */
 #define SQLITE_WARNING     28   /* Warnings from sqlite3_log() */
+#define SQLITE_MOVED       29   /* Internal use only:  Cursor moved */
 #define SQLITE_ROW         100  /* sqlite3_step() has another row ready */
 #define SQLITE_DONE        101  /* sqlite3_step() has finished executing */
 /* end-of-error-codes */

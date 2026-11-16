@@ -18,8 +18,9 @@
 ** separate file. This file contains only code for the core SQLite library.
 **
 ** The content in this amalgamation comes from Fossil check-in
-** 555e07ef33f69a0957d24d8e555b702464a1 with changes in files:
+** 4892a3959e1ab0d9329788cc627ef7f52bf6 with changes in files:
 **
+**    manifest.uuid
 **    
 */
 #ifndef SQLITE_AMALGAMATION
@@ -469,7 +470,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.54.1"
 #define SQLITE_VERSION_NUMBER 3054001
-#define SQLITE_SOURCE_ID      "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76"
+#define SQLITE_SOURCE_ID      "2026-10-16 14:45:20 4892a3959e1ab0d9329788cc627ef7f52bf6896f975c857d25b1632b31450612"
 #define SQLITE_SCM_BRANCH     "branch-3.54"
 #define SQLITE_SCM_TAGS       "release version-3.54.1"
 #define SQLITE_SCM_DATETIME   "2026-10-16T14:45:20.546Z"
@@ -797,6 +798,7 @@ SQLITE_API int sqlite3_exec(
 #define SQLITE_NOTADB      26   /* File opened that is not a database file */
 #define SQLITE_NOTICE      27   /* Notifications from sqlite3_log() */
 #define SQLITE_WARNING     28   /* Warnings from sqlite3_log() */
+#define SQLITE_MOVED       29   /* Internal use only:  Cursor moved */
 #define SQLITE_ROW         100  /* sqlite3_step() has another row ready */
 #define SQLITE_DONE        101  /* sqlite3_step() has finished executing */
 /* end-of-error-codes */
@@ -69646,8 +69648,12 @@ static int walIndexReadHdr(Wal *pWal, int *pChanged){
   if( badHdr ){
     if( pWal->bShmUnreliable==0 && (pWal->readOnly & WAL_SHM_RDONLY) ){
       if( SQLITE_OK==(rc = walLockShared(pWal, WAL_WRITE_LOCK)) ){
+        /* Retry the header now that the WRITE_LOCK is held. If it still
+        ** fails, the header really is corrupt and recovery is required.
+        ** Otherwise, continue with the now valid header.  */
+        if( page0 ) badHdr = walIndexTryHdr(pWal, pChanged);
         walUnlockShared(pWal, WAL_WRITE_LOCK);
-        rc = SQLITE_READONLY_RECOVERY;
+        if( badHdr ) rc = SQLITE_READONLY_RECOVERY;
       }
     }else{
       int bWriteLock = pWal->writeLock;
@@ -70128,25 +70134,35 @@ static int walTryBeginRead(Wal *pWal, int *pChanged, int useWal, int *pCnt){
         mxI = i;
       }
     }
-    if( (pWal->readOnly & WAL_SHM_RDONLY)==0
-     && (mxReadMark<mxFrame || mxI==0)
-    ){
-      for(i=1; i<WAL_NREADER; i++){
-        rc = walLockExclusive(pWal, WAL_READ_LOCK(i), 1);
-        if( rc==SQLITE_OK ){
-          AtomicStore(pInfo->aReadMark+i,mxFrame);
-          mxReadMark = mxFrame;
-          mxI = i;
-          walUnlockExclusive(pWal, WAL_READ_LOCK(i), 1);
-          break;
-        }else if( rc!=SQLITE_BUSY ){
-          return rc;
+
+    if( (pWal->readOnly & WAL_SHM_RDONLY)==0 ){
+      if( mxReadMark<mxFrame || mxI==0 ){
+        for(i=1; i<WAL_NREADER; i++){
+          rc = walLockExclusive(pWal, WAL_READ_LOCK(i), 1);
+          if( rc==SQLITE_OK ){
+            AtomicStore(pInfo->aReadMark+i,mxFrame);
+            mxReadMark = mxFrame;
+            mxI = i;
+            walUnlockExclusive(pWal, WAL_READ_LOCK(i), 1);
+            break;
+          }else if( rc!=SQLITE_BUSY ){
+            return rc;
+          }
         }
       }
+    }else if( mxI==0 ){
+      /* If the loop above could not find a usable slot (mxI==0), then check
+      ** if the wal-index header has been modified by another connection since
+      ** it was read. If not, return SQLITE_READONLY_CANTINIT. If it has
+      ** been modified, fall through and return WAL_RETRY.  */
+      walShmBarrier(pWal);
+      if( 0==memcmp((void*)walIndexHdr(pWal),&pWal->hdr,sizeof(WalIndexHdr)) ){
+        return SQLITE_READONLY_CANTINIT;
+      }
     }
+
     if( mxI==0 ){
-      assert( rc==SQLITE_BUSY || (pWal->readOnly & WAL_SHM_RDONLY)!=0 );
-      return rc==SQLITE_BUSY ? WAL_RETRY : SQLITE_READONLY_CANTINIT;
+      return WAL_RETRY;
     }
 
     (void)walEnableBlockingMs(pWal, nBlockTmout);
@@ -78099,28 +78115,34 @@ SQLITE_PRIVATE int sqlite3BtreePayload(BtCursor *pCur, u32 offset, u32 amt, void
 ** This variant of sqlite3BtreePayload() works even if the cursor has not
 ** in the CURSOR_VALID state.  It is only used by the sqlite3_blob_read()
 ** interface.
+**
+** If the cursor has to be restored to its saved position, then SQLITE_MOVED
+** is returned and no data is read.  The content of the row might have changed
+** while the cursor position was saved, so the caller needs to recompute the
+** size and offset of the data it is reading before it tries again.  If the
+** row no longer exists, SQLITE_ABORT is returned.
 */
 #ifndef SQLITE_OMIT_INCRBLOB
-static SQLITE_NOINLINE int accessPayloadChecked(
-  BtCursor *pCur,
-  u32 offset,
-  u32 amt,
-  void *pBuf
-){
+static SQLITE_NOINLINE int accessPayloadChecked(BtCursor *pCur){
   int rc;
   if ( pCur->eState==CURSOR_INVALID ){
     return SQLITE_ABORT;
   }
   assert( cursorOwnsBtShared(pCur) );
   rc = btreeRestoreCursorPosition(pCur);
-  return rc ? rc : accessPayload(pCur, offset, amt, pBuf, 0);
+  if( rc ) return rc;
+  if( pCur->eState!=CURSOR_VALID ){
+    /* The row is gone, and the cursor was restored onto a neighbor. */
+    return SQLITE_ABORT;
+  }
+  return SQLITE_MOVED;
 }
 SQLITE_PRIVATE int sqlite3BtreePayloadChecked(BtCursor *pCur, u32 offset, u32 amt, void *pBuf){
   if( pCur->eState==CURSOR_VALID ){
     assert( cursorOwnsBtShared(pCur) );
     return accessPayload(pCur, offset, amt, pBuf, 0);
   }else{
-    return accessPayloadChecked(pCur, offset, amt, pBuf);
+    return accessPayloadChecked(pCur);
   }
 }
 #endif /* SQLITE_OMIT_INCRBLOB */
@@ -105866,6 +105888,7 @@ struct Incrblob {
   int nByte;              /* Size of open blob, in bytes */
   int iOffset;            /* Byte offset of blob in cursor data */
   u16 iCol;               /* Table column this handle is open on */
+  u8 bRetry;              /* Doing a blobReadWrite() retry */
   BtCursor *pCsr;         /* Cursor pointing at blob row */
   sqlite3_stmt *pStmt;    /* Statement holding cursor open */
   sqlite3 *db;            /* The associated database */
@@ -106215,6 +106238,65 @@ SQLITE_API int sqlite3_blob_close(sqlite3_blob *pBlob){
   return rc;
 }
 
+/* Forward reference */
+static int blobReadWrite(
+  sqlite3_blob *pBlob,
+  void *z,
+  int n,
+  int iOffset,
+  int (*xCall)(BtCursor*, u32, u32, void*)
+);
+
+/*
+** The b-tree cursor for blob handle p was restored to its saved position by
+** sqlite3BtreePayloadChecked(), which then returned SQLITE_MOVED.  The
+** position is saved, for example, by a ROLLBACK, and that might have changed
+** the content of the row.  So the iOffset and nByte values computed when the
+** handle was opened or last moved cannot be trusted.  A ROLLBACK can change
+** the size of a column that precedes the blob, which moves the blob within
+** the row.
+**
+** Recompute iOffset and nByte in the same way that sqlite3_blob_reopen()
+** does.  Then retry the blobReadWrite().
+*/
+static SQLITE_NOINLINE int blobReadWriteRetry(
+  Incrblob *p,
+  void *z,
+  int n,
+  int iOffset,
+  int (*xCall)(BtCursor*, u32, u32, void*)
+){
+  int rc;
+  sqlite3_int64 iRow;
+  char *zErr = 0;
+  sqlite3 *db = p->db;
+
+  sqlite3BtreeEnterCursor(p->pCsr);
+  iRow = sqlite3BtreeIntegerKey(p->pCsr);
+  sqlite3BtreeLeaveCursor(p->pCsr);
+  ((Vdbe*)p->pStmt)->rc = SQLITE_OK;
+  if( NEVER(p->bRetry) || sqlite3FaultSim(210) ){
+    /* It should not be possible for blobReadWrite() and blobReadWriteRetry()
+    ** to get into a loop, but we check anyway, for safety. */
+    rc = SQLITE_ABORT;
+    sqlite3VdbeFinalize((Vdbe*)p->pStmt);
+    p->pStmt = 0;
+  }else{
+    rc = blobSeekToRow(p, iRow, &zErr);
+  }
+  sqlite3DbFree(db, zErr);
+  assert( rc==SQLITE_OK || p->pStmt==0 );
+  if( rc==SQLITE_OK ){
+    p->bRetry = 1;
+    rc = blobReadWrite((sqlite3_blob*)p,z,n,iOffset,xCall);
+    p->bRetry = 0;
+  }else{
+    rc = sqlite3ApiExit(db, rc);
+  }
+  sqlite3_mutex_leave(db->mutex);
+  return rc;
+}
+
 /*
 ** Perform a read or write operation on a blob
 */
@@ -106292,11 +106374,21 @@ static int blobReadWrite(
 #endif
 
     sqlite3BtreeLeaveCursor(p->pCsr);
-    if( rc==SQLITE_ABORT ){
-      sqlite3VdbeFinalize(v);
-      p->pStmt = 0;
+    if( rc==SQLITE_OK ){
+      v->rc = SQLITE_OK;
     }else{
-      v->rc = rc;
+      if( rc==SQLITE_MOVED ){
+        /* The cursor was restored and no data was read.  Refresh the
+        ** handle and try the read again. */
+        return blobReadWriteRetry(p,z,n,iOffset,xCall);
+      }
+      if( rc==SQLITE_ABORT ){
+        assert( p->pStmt );
+        sqlite3VdbeFinalize(v);
+        p->pStmt = 0;
+      }else{
+        v->rc = rc;
+      }
     }
   }
   sqlite3Error(db, rc);
@@ -264927,7 +265019,7 @@ static void fts5SourceIdFunc(
 ){
   assert( nArg==0 );
   UNUSED_PARAM2(nArg, apUnused);
-  sqlite3_result_text(pCtx, "fts5: 2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76", -1, SQLITE_TRANSIENT);
+  sqlite3_result_text(pCtx, "fts5: 2026-10-16 14:45:20 0000000000000000000000000000000000000000000000000000000000000000", -1, SQLITE_TRANSIENT);
 }
 
 /*
